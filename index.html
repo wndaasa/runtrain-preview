@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>달리기차 디자인 확인</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --line: #dcdcdc; --text: #1f1f1f; --sub: #6b6b6b; --bg: #f4f4f4; --accent: #5f39fe; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: 'Noto Sans KR', system-ui, sans-serif; font-weight: 400; color: var(--text); background: var(--bg); display: flex; flex-direction: column; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px 20px; background: #fff; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 15px; font-weight: 500; margin: 0 8px 0 0; }
+  label { font-size: 13px; color: var(--sub); display: flex; align-items: center; gap: 6px; }
+  select, input[type=number], button { font: inherit; font-size: 13px; color: var(--text); background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  input[type=number] { width: 68px; }
+  button { cursor: pointer; }
+  button:hover { border-color: #9a9a9a; }
+  #size { font-size: 13px; color: var(--sub); font-variant-numeric: tabular-nums; }
+  #build { margin-left: auto; font-size: 12px; color: var(--sub); }
+  main { flex: 1; min-height: 0; display: flex; align-items: flex-start; justify-content: center; padding: 24px; overflow: auto; }
+  #stage { transform-origin: top center; }
+  #phone { background: #fff; border: 1px solid #bdbdbd; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+  .bar { flex: none; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; font-size: 12px; color: #555; }
+  .bar.bottom { justify-content: center; }
+  .bar.bottom i { display: block; width: 120px; height: 4px; border-radius: 2px; background: #c4c4c4; }
+  iframe { flex: 1; min-height: 0; width: 100%; border: 0; display: block; }
+  footer { padding: 8px 20px 12px; font-size: 12px; color: var(--sub); text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>달리기차 디자인 확인</h1>
+  <label>기종
+    <select id="device"></select>
+  </label>
+  <label>폭 <input id="w" type="number" min="280" max="1000"></label>
+  <label>높이 <input id="h" type="number" min="480" max="1400"></label>
+  <label><input id="bars" type="checkbox" checked> 상태바와 하단 바 자리</label>
+  <label><input id="fit" type="checkbox" checked> 창에 맞춰 줄이기</label>
+  <button id="reload" type="button">처음부터 다시</button>
+  <span id="size"></span>
+  <span id="build"></span>
+</header>
+<main>
+  <div id="stage">
+    <div id="phone">
+      <div class="bar top" id="top"><span>9:41</span><span>상태바</span></div>
+      <iframe id="app" src="app/" title="달리기차"></iframe>
+      <div class="bar bottom" id="bottom"><i></i></div>
+    </div>
+  </div>
+</main>
+<footer>폭과 높이는 앱이 화면을 배치할 때 쓰는 논리 크기이고(실제 해상도를 화면 배율로 나눈 값, 기종의 기본 설정 기준), 상태바와 하단 바 높이는 대략의 값입니다. 데이터는 예시이며 새로 고치면 처음으로 돌아갑니다.</footer>
+<script>
+// 폭과 높이는 앱이 배치에 쓰는 논리 픽셀(dp, pt)이다. 제조사가 적는 해상도(예: S20 1440 x 3200)는
+// 실제 픽셀 수이고, 화면은 이를 배율(S20은 4배)로 나눈 논리 픽셀로 그려진다. 피그마 프레임 390 x 844도 논리 픽셀이다.
+// 순서: 이름, 폭, 높이, 상태바 높이, 하단 바 높이, 실제 해상도.
+const DEVICES = [
+  ['디자인 기준', [['피그마 프레임 390 x 844', 390, 844, 47, 34, '1170 x 2532']]],
+  ['갤럭시 (최신)', [
+    ['갤럭시 S24, S25, S26', 360, 780, 28, 24, '1080 x 2340'],
+    ['갤럭시 S26+, S24~S26 울트라', 384, 832, 28, 24, '1440 x 3120'],
+    ['갤럭시 Z 플립7, Z 플립8', 360, 840, 28, 24, '1080 x 2520'],
+  ]],
+  ['갤럭시 (이전)', [
+    ['갤럭시 S20', 360, 800, 28, 24, '1440 x 3200'],
+    ['갤럭시 S20+', 384, 854, 28, 24, '1440 x 3200'],
+    ['갤럭시 S20 울트라', 412, 915, 28, 24, '1440 x 3200'],
+    ['갤럭시 노트20', 412, 915, 28, 24, '1080 x 2400'],
+    ['갤럭시 노트20 울트라', 412, 883, 28, 24, '1440 x 3088'],
+    ['갤럭시 Z 플립3', 360, 880, 28, 24, '1080 x 2640'],
+  ]],
+  ['아이폰 (최신)', [
+    ['아이폰 16 Pro, 17, 17 Pro', 402, 874, 62, 34, '1206 x 2622'],
+    ['아이폰 Air', 420, 912, 62, 34, '1260 x 2736'],
+    ['아이폰 16 Pro Max, 17 Pro Max, 18 Pro Max', 440, 956, 62, 34, '1320 x 2868'],
+  ]],
+  ['아이폰 (이전)', [
+    ['아이폰 SE (2, 3세대)', 375, 667, 20, 0, '750 x 1334'],
+    ['아이폰 12, 13, 14', 390, 844, 47, 34, '1170 x 2532'],
+    ['아이폰 14 Pro, 15, 16', 393, 852, 59, 34, '1179 x 2556'],
+    ['아이폰 14 Pro Max, 15 Pro Max', 430, 932, 59, 34, '1290 x 2796'],
+  ]],
+];
+
+// 실제 폰으로 열면 틀 없이 앱을 바로 보여준다.
+if (window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 600 && !location.search.includes('frame')) {
+  location.replace('app/');
+}
+
+const $ = (id) => document.getElementById(id);
+const sel = $('device'), wIn = $('w'), hIn = $('h');
+const flat = [];
+for (const [group, list] of DEVICES) {
+  const og = document.createElement('optgroup');
+  og.label = group;
+  for (const d of list) {
+    const o = document.createElement('option');
+    o.value = flat.length;
+    o.textContent = `${d[0]} (${d[1]} x ${d[2]})`;
+    og.appendChild(o);
+    flat.push(d);
+  }
+  sel.appendChild(og);
+}
+const custom = document.createElement('option');
+custom.value = 'custom';
+custom.textContent = '직접 입력';
+sel.appendChild(custom);
+
+let insets = [47, 34];
+let physical = '';
+
+function apply() {
+  const w = +wIn.value, h = +hIn.value;
+  const bars = $('bars').checked;
+  $('phone').style.width = w + 'px';
+  $('phone').style.height = h + 'px';
+  $('top').style.display = bars && insets[0] ? 'flex' : 'none';
+  $('top').style.height = insets[0] + 'px';
+  $('bottom').style.display = bars && insets[1] ? 'flex' : 'none';
+  $('bottom').style.height = insets[1] + 'px';
+  const appH = h - (bars ? insets[0] + insets[1] : 0);
+  $('size').textContent = `앱 영역 ${w} x ${appH}` + (physical ? ` · 실제 해상도 ${physical}` : '');
+  const room = document.querySelector('main').clientHeight - 48;
+  const scale = $('fit').checked ? Math.min(1, room / h) : 1;
+  $('stage').style.transform = `scale(${scale})`;
+  $('stage').style.height = h * scale + 'px';
+  try { localStorage.setItem('preview2', JSON.stringify({ d: sel.value, w, h, bars, fit: $('fit').checked })); } catch (e) {}
+}
+
+function pick() {
+  if (sel.value !== 'custom') {
+    const d = flat[+sel.value];
+    wIn.value = d[1]; hIn.value = d[2]; insets = [d[3], d[4]]; physical = d[5];
+  } else physical = '';
+  apply();
+}
+
+sel.addEventListener('change', pick);
+for (const el of [wIn, hIn]) el.addEventListener('input', () => { sel.value = 'custom'; physical = ''; apply(); });
+$('bars').addEventListener('change', apply);
+$('fit').addEventListener('change', apply);
+$('reload').addEventListener('click', () => { $('app').src = 'app/?t=' + Date.now(); });
+window.addEventListener('resize', apply);
+
+let saved = null;
+try { saved = JSON.parse(localStorage.getItem('preview2')); } catch (e) {}
+if (saved && (saved.d === 'custom' || flat[+saved.d])) {
+  sel.value = saved.d; $('bars').checked = saved.bars; $('fit').checked = saved.fit;
+  if (saved.d === 'custom') { wIn.value = saved.w; hIn.value = saved.h; apply(); } else pick();
+} else { sel.value = 0; pick(); }
+
+fetch('build.txt').then((r) => r.ok ? r.text() : '').then((t) => { if (t) $('build').textContent = '빌드 ' + t.trim(); }).catch(() => {});
+</script>
+</body>
+</html>
